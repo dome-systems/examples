@@ -1,0 +1,57 @@
+schema_version: 1
+# Everything this agent needs the workspace to provide. Everything here is
+# create-if-missing, so applying it against a workspace that already has these
+# leaves them alone — and the credentials below are read only by a create. A
+# workspace where an administrator already configured the connection never has
+# to hold its token.
+gateways:
+  # Every Dome workspace auto-creates a Gateway named Default, so naming it here
+  # attaches to what is already there rather than standing up a second endpoint
+  # beside it. Named by the tools and models entries below, which attach to it,
+  # and by dome-agent.yaml, which entitles the agent to it. Change it in one
+  # place and change it everywhere.
+  - name: Default
+    description: GitHub reads and the summarizer behind the activity report
+tools:
+  # The connection name is load-bearing and case-sensitive. Tools are addressed
+  # as connection/tool, so the agent's GitHub/search_pull_requests entitlement
+  # and the tool names dome-agent.yaml passes to the program both depend on this
+  # matching the connection in the workspace exactly.
+  #
+  # This is GitHub's own hosted MCP server, so nothing about it is
+  # environment-specific and the whole document is portable as written.
+  #
+  # The endpoint also serves a /readonly variant that publishes only read tools.
+  # It is deliberately not used: the agent is held to reading by the closed-world
+  # guardrail in dome-agent.yaml, and a connection that never publishes a
+  # mutating tool would leave that guardrail's deny-checks with nothing to
+  # resolve against — the proof would quietly evaporate.
+  - name: GitHub
+    url: https://api.githubcopilot.com/mcp/
+    auth:
+      method: api-key
+      # Holds the complete Authorization header value, e.g. "Bearer github_pat_…".
+      # A classic PAT needs "repo" for private repositories, or "public_repo"
+      # alone if every repository read is public.
+      secret_env: GITHUB_MCP_TOKEN
+    gateways:
+      - Default
+models:
+  # No endpoint: Anthropic publishes a well-known base URL that apply resolves
+  # from the provider registry. Naming it here would freeze a value the registry
+  # owns into a committed lockfile for no gain.
+  #
+  # The connection name is load-bearing: entitlements, checks, and
+  # SUMMARY_MODEL all spell it the same way. sandbox-get-started already has a
+  # connection named claude-sonnet; applying against that workspace leaves it
+  # alone and never reads ANTHROPIC_API_KEY.
+  - name: claude-sonnet
+    provider: anthropic
+    model: claude-sonnet-4-6
+    auth:
+      method: api-key
+      # The provider's raw API key, not a complete header value. A tool's
+      # secret_env and a model's are different things.
+      secret_env: ANTHROPIC_API_KEY
+    gateways:
+      - Default

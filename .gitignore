@@ -1,0 +1,36 @@
+# Credentials. Every example takes its Dome key, provider keys, and act-as
+# secret from the environment, so nothing here should ever be committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+.dome/
+
+# Blueprint state that belongs to whoever applied it, not to the example
+*.bindings.json
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local tooling
+bin/
+.vercel/
+.vercel-env-upload/
+*.tsbuildinfo
+next-env.d.ts
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+coverage/
+
+# macOS
+.DS_Store
+._*

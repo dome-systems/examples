@@ -1,0 +1,17 @@
+# Local Stockfish tool: bridge HTTP → mcp-stockfish stdio
+#
+# Upstream mcp-stockfish HTTP mode is currently a stub; this compose stack
+# is the supported "local" backend. Deploy the same image for "remote".
+
+services:
+  stockfish:
+    build:
+      context: .
+      dockerfile: services/stockfish-bridge/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      MCP_STOCKFISH_BIN: /usr/local/bin/mcp-stockfish
+      MCP_STOCKFISH_PATH: /usr/local/bin/stockfish
+      MCP_STOCKFISH_LOG_LEVEL: info

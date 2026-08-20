@@ -1,0 +1,8 @@
+{
+  "name": "demo-chess-stockfish-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

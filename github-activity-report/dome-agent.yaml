@@ -1,0 +1,109 @@
+schema_version: 1
+agent:
+  name: github-activity-report
+  metadata:
+    owner: platform-team
+    purpose: recurring per-developer GitHub activity report
+  access:
+    dependencies:
+      gateways:
+        activity:
+          name: Default
+    # One Gateway is declared, so every name below is expanded into that
+    # Gateway's `requires` at compile time. Listing them twice would be
+    # busywork; read the lockfile for the long form.
+    #
+    # `exclusive` makes these lists the complete allow-list rather than a
+    # minimum, and compiles the deny half — a closed-world Cedar guardrail
+    # forbidding any mcp:call or llm:invoke outside them. That is what holds
+    # this agent to reading: GitHub's MCP server publishes the whole write
+    # surface on the same connection, and enumerating it by hand would rot the
+    # first time GitHub shipped a tool.
+    entitlements:
+      exclusive: true
+      gateways: [activity]
+      tools:
+        - GitHub/list_issues
+        - GitHub/search_pull_requests
+      direct_models:
+        - claude-sonnet
+# The generated guardrail is only as good as the assertions made about it, and
+# assess re-runs these against the live effective policy on every environment.
+checks:
+  - name: pull-request-search-allowed
+    action: mcp:call
+    resource:
+      type: mcp_tool
+      name: GitHub/search_pull_requests
+    expect: allow
+  - name: issue-listing-allowed
+    action: mcp:call
+    resource:
+      type: mcp_tool
+      name: GitHub/list_issues
+    expect: allow
+  - name: summarizer-invoke-allowed
+    action: llm:invoke
+    resource:
+      type: llm_model
+      name: claude-sonnet
+    expect: allow
+  # The deny half. These three are published by the same connection the two
+  # reads come from, so a guardrail that let any of them through would be a
+  # reporting agent that could also merge code and file issues in a customer's
+  # name.
+  - name: issue-write-denied
+    action: mcp:call
+    resource:
+      type: mcp_tool
+      name: GitHub/issue_write
+    expect: deny
+  - name: pull-request-merge-denied
+    action: mcp:call
+    resource:
+      type: mcp_tool
+      name: GitHub/merge_pull_request
+    expect: deny
+  - name: pull-request-create-denied
+    action: mcp:call
+    resource:
+      type: mcp_tool
+      name: GitHub/create_pull_request
+    expect: deny
+runtime:
+  # The agent is the Blueprint. These three lines are the process that carries
+  # it — Python by default. Same entitlements, same checks, same env:
+  #
+  #   command: ts/node_modules/.bin/tsx
+  #   args: [ts/main.ts]
+  #
+  #   command: go
+  #   args: [run, ./go]
+  command: ./.venv/bin/python
+  args:
+    - main.py
+  working_directory: .
+  environment:
+    # Credentials and the person being reported on stay out of the Blueprint;
+    # apply and dev read them from the environment. The GitHub login is not a
+    # secret but it is not a workspace resource either — the connection's token
+    # says who Dome authenticates as, not whose work the report is about, so
+    # nothing the platform holds can supply it.
+    #
+    # The Slack credentials are deliberately not required here. main.py rejects
+    # OUTPUT_MODE=slack without them immediately and by name, and requiring them
+    # would mean a first OUTPUT_MODE=stdout run could not start without a Slack
+    # app it is not going to use.
+    required:
+      - GITHUB_USERNAME
+    # The tool and model names are the workspace's, not this program's, so they
+    # are passed from the document that declares them rather than hard-coded in
+    # main.py, whose own defaults stay neutral. Tools are addressed
+    # connection/tool, and both halves are case-sensitive.
+    defaults:
+      GITHUB_ISSUE_LIST_TOOL: GitHub/list_issues
+      GITHUB_PR_SEARCH_TOOL: GitHub/search_pull_requests
+      GITHUB_REPOS: dome-systems/prod-dome,dome-systems/sdk-dome-python
+      LOOKBACK_HOURS: "24"
+      OUTPUT_MODE: slack
+      SUMMARY_MODEL: claude-sonnet

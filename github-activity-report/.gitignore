@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+node_modules/
+ts/node_modules/
+
+# Local secrets — this program takes its credentials from the environment
+.env
+.env.*
+!.env.*.example
+
+# macOS
+.DS_Store
+._*

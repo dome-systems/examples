@@ -1,0 +1,13 @@
+{
+  "agent": "chess-coach",
+  "agent_id": "7655ceca-2742-4558-a830-ac982eed4d42",
+  "metadata": {
+    "demo": "chess",
+    "prompt.beginner": "Plain language only. Explain why a move is weak before what to play. Avoid jargon, opening names, and long variations.",
+    "prompt.club": "Terse and tactical. Name openings, give concrete variations in algebraic notation, and assume the player knows chess vocabulary.",
+    "prompt.default": "Helpful chess coach. Ground advice in the engine brief.",
+    "role": "coach"
+  },
+  "synced_at": "2026-08-12T06:23:41.006326Z",
+  "note": "Public snapshot of chess-coach agent metadata. Secrets live in .dome/ (gitignored). Refresh with ./scripts/sync-coach-metadata.sh"
+}
