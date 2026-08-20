@@ -10,12 +10,15 @@ venv/
 .mypy_cache/
 .pytest_cache/
 node_modules/
-ts/node_modules/
 
 # Local secrets — this program takes its credentials from the environment
 .env
 .env.*
 !.env.*.example
+
+# Whoever applied the Blueprint owns these: they record the IDs that this
+# workspace's names resolved to, and they mean nothing in another workspace.
+dome/*.bindings.json
 
 # macOS
 .DS_Store

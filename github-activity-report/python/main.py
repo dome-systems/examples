@@ -15,12 +15,12 @@ still moving, and issues opened in the window.
 
 Run it:
 
-    ./.venv/bin/python main.py
+    cd python && ./.venv/bin/python main.py
 
 or, with a Dome Blueprint applied, let the platform supply the gateway
 environment:
 
-    dome blueprint dev
+    cd dome && dome blueprint dev --env-file ../.env
 
 Required environment. The first three are injected by `dome blueprint dev`, so
 their names are the platform's rather than this program's:

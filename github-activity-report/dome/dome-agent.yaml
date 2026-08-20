@@ -74,14 +74,14 @@ runtime:
   # The agent is the Blueprint. These three lines are the process that carries
   # it — Python by default. Same entitlements, same checks, same env:
   #
-  #   command: ts/node_modules/.bin/tsx
-  #   args: [ts/main.ts]
+  #   command: ../typescript/node_modules/.bin/tsx
+  #   args: [../typescript/main.ts]
   #
   #   command: go
-  #   args: [run, ./go]
-  command: ./.venv/bin/python
+  #   args: [-C, ../go, run, .]
+  command: ../python/.venv/bin/python
   args:
-    - main.py
+    - ../python/main.py
   working_directory: .
   environment:
     # Credentials and the person being reported on stay out of the Blueprint;
@@ -90,7 +90,7 @@ runtime:
     # says who Dome authenticates as, not whose work the report is about, so
     # nothing the platform holds can supply it.
     #
-    # The Slack credentials are deliberately not required here. main.py rejects
+    # The Slack credentials are deliberately not required here. Every runtime rejects
     # OUTPUT_MODE=slack without them immediately and by name, and requiring them
     # would mean a first OUTPUT_MODE=stdout run could not start without a Slack
     # app it is not going to use.
@@ -98,7 +98,7 @@ runtime:
       - GITHUB_USERNAME
     # The tool and model names are the workspace's, not this program's, so they
     # are passed from the document that declares them rather than hard-coded in
-    # main.py, whose own defaults stay neutral. Tools are addressed
+    # the runtime code, whose own defaults stay neutral. Tools are addressed
     # connection/tool, and both halves are case-sensitive.
     defaults:
       GITHUB_ISSUE_LIST_TOOL: GitHub/list_issues

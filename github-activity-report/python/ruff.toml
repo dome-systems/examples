@@ -1,0 +1,10 @@
+# Import order has to be a property of this directory, not of where ruff was
+# invoked from. Without `src`, ruff infers first-party packages from the working
+# directory, and from the example root the sibling dome/ directory of Blueprint
+# documents looks like the `dome` SDK package — so the same file is asked for two
+# different orderings depending on the command's cwd.
+src = ["."]
+
+[lint.isort]
+known-first-party = ["main"]
+known-third-party = ["dome"]

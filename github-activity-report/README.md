@@ -14,38 +14,52 @@ whole write surface on the same connection, so being unable to merge a pull
 request or file an issue is a property the Blueprint proves rather than a promise
 the code makes; see [Read-only is a guardrail, not a convention](#read-only-is-a-guardrail-not-a-convention).
 
-The agent is language-agnostic. `dome-agent.yaml` and `dome-workspace.yaml` are
-the agent — identity, entitlements, the closed-world guardrail, the checks.
-`main.py`, `ts/main.ts` and `go/main.go` are three processes that carry that
-same agent to the Gateway. Swap `runtime.command` to pick a language; do not
-edit the entitlements.
+The layout keeps governance separate from implementation:
+
+```text
+github-activity-report/
+├── dome/         # Blueprint documents, generated locks, recorded bindings
+├── python/       # Python runtime, dependencies, and tests
+├── typescript/   # TypeScript runtime and dependencies
+├── go/           # Go runtime and module
+└── .env          # your credentials, ignored by git
+```
+
+`dome/dome-agent.yaml` and `dome/dome-workspace.yaml` are the agent — identity,
+entitlements, the closed-world guardrail, and the checks. The other three
+directories are interchangeable processes that carry that same agent to the
+Gateway. Swap `runtime.command` to pick a language; do not edit the
+entitlements.
 
 ## Setup
 
 Python (the Blueprint's default runtime):
 
 ```bash
-python3 -m venv .venv
-./.venv/bin/pip install -r requirements.txt
+python3 -m venv python/.venv
+python/.venv/bin/pip install -r python/requirements.txt
 ```
 
 TypeScript (Node 22+, talks to the Gateway over HTTP — there is no TS SDK yet):
 
 ```bash
-cd ts && npm install
+cd typescript && npm install && cd ..
 ```
 
 Go (stdlib only):
 
 ```bash
-# nothing to vendor; `go run ./go` from the repo root
+# nothing to install; `go -C go run .` from the example root
 ```
 
-`dome blueprint run` uses the Python command in `dome-agent.yaml`. To run the same applied agent in another language without editing the document:
+Blueprint commands run from `dome/`. The document uses Python by default. To
+run the same applied agent in another language without editing it:
 
 ```bash
-dome blueprint run -- ts/node_modules/.bin/tsx ts/main.ts
-dome blueprint run -- go run ./go
+cd dome
+dome blueprint run --env-file ../.env \
+  -- ../typescript/node_modules/.bin/tsx ../typescript/main.ts
+dome blueprint run --env-file ../.env -- go -C ../go run .
 ```
 
 ## Running it in a workspace
@@ -56,12 +70,12 @@ dashboard:
 
 | Document | Declares |
 |---|---|
-| `dome-workspace.yaml` | everything the workspace provides: the `Default` Gateway, the `GitHub` MCP connection, and the `claude-sonnet` model connection |
-| `dome-agent.yaml` | what the agent asserts about itself: identity, entitlements, the guardrail, the checks, and the resource names it passes to the program |
+| `dome/dome-workspace.yaml` | everything the workspace provides: the `Default` Gateway, the `GitHub` MCP connection, and the `claude-sonnet` model connection |
+| `dome/dome-agent.yaml` | what the agent asserts about itself: identity, entitlements, the guardrail, the checks, and the resource names it passes to the program |
 
 Those names are the workspace's, not this program's, and they are the seam
-between the three files. `dome-workspace.yaml` attaches the connection and the
-model to a Gateway; `dome-agent.yaml` entitles `GitHub/…` tools and the
+between the four directories. `dome/dome-workspace.yaml` attaches the connection and the
+model to a Gateway; `dome/dome-agent.yaml` entitles `GitHub/…` tools and the
 `claude-sonnet` model on that Gateway, and passes both names to the program through
 `runtime.environment.defaults`. So pointing this agent at a workspace that spells
 them differently is an edit to the two documents and nothing more — every
@@ -91,7 +105,7 @@ present, reads no secret, and never needs `GITHUB_MCP_TOKEN` in your shell or in
 `.env` at all. Applying against a workspace that already has the connection
 leaves it alone.
 
-Declaring it in `dome-workspace.yaml` anyway is not redundant. `assess` resolves
+Declaring it in `dome/dome-workspace.yaml` anyway is not redundant. `assess` resolves
 the name against the live workspace, so it catches a connection you spelled
 differently before anything else fails, and the declaration is what lets this
 document stand up a workspace where nobody has done the step above.
@@ -119,10 +133,12 @@ rather than at apply.
 ```bash
 cp .env.prod.example .env             # then fill it in
 dome context use <your-workspace>     # `dome context list` if you don't know its name
+cd dome
+set -a; source ../.env; set +a
 
 # Both documents. Unscoped `blueprint` fans out in dependency order —
 # workspace, then agent — because the agent attaches to what workspace creates.
-dome blueprint assess                 # confirm the gaps and that you hold the permissions
+dome blueprint assess
 dome blueprint apply
 
 # Pin what the names resolved to, so a replaced connection is caught later.
@@ -133,7 +149,7 @@ A Blueprint cannot create a credential; it can only name one, and it reads the
 value it names at exactly one moment — see `.env.prod.example`.
 
 **Which credentials you need depends on what the workspace already has.**
-Everything in `dome-workspace.yaml` is create-if-missing, and a credential is
+Everything in `dome/dome-workspace.yaml` is create-if-missing, and a credential is
 read only by a create:
 
 - The workspace already has the connection and the model — the step above, an
@@ -174,13 +190,14 @@ Mint a key once and record it in the same file, then every later run needs no
 flags at all:
 
 ```bash
-dome blueprint run --provision-key --write-key-to .env
-dome blueprint run
+dome blueprint run --env-file ../.env \
+  --provision-key --write-key-to ../.env
+dome blueprint run --env-file ../.env
 ```
 
 `run` injects `DOME_AGENT_API_KEY`, `DOME_GATEWAY_URL`, `DOME_API_URL`,
 `DOME_WORKSPACE_ID` and `DOME_AGENT_ID` from the applied Blueprint and runs
-`main.py` with them. Before starting it reports *every* reason it cannot — a
+`python/main.py` with them. Before starting it reports *every* reason it cannot — a
 missing required variable, an unregistered agent, an absent key — rather than one
 per attempt.
 
@@ -192,7 +209,7 @@ only by you. Without it nothing is persisted, which is the right default for a
 credential but means the flag is needed on every run.
 
 The `export` prefixes are not required — `NAME=value` parses too — but they keep
-the same file usable with `source .env` when running `main.py` directly. Values
+the same file usable with `source .env` when running `python/main.py` directly. Values
 already in your environment win over the file, so a one-off override needs no
 edit. Use `--env-file` for a file under another name, and keep any file holding a
 key out of version control; `run` warns when git does not ignore the one it wrote
@@ -207,7 +224,7 @@ Blueprint's `runtime.environment.defaults`, so that one line is enough.
 ## Running it directly
 
 Useful for iterating without a Blueprint. Every variable is documented in the
-docstring at the top of `main.py`. Nothing here is optional guesswork: the tool
+docstring at the top of `python/main.py`. Nothing here is optional guesswork: the tool
 and model names must match what the target workspace actually publishes, which is
 what the Blueprint would otherwise pass in for you.
 
@@ -221,9 +238,9 @@ SUMMARY_MODEL=claude-sonnet \
 GITHUB_PR_SEARCH_TOOL=GitHub/search_pull_requests \
 GITHUB_ISSUE_LIST_TOOL=GitHub/list_issues \
 OUTPUT_MODE=stdout \
-./.venv/bin/python main.py --lookback-hours 72
-# or:  ts/node_modules/.bin/tsx ts/main.ts --lookback-hours 72
-# or:  go run ./go --lookback-hours 72
+python/.venv/bin/python python/main.py --lookback-hours 72
+# or: typescript/node_modules/.bin/tsx typescript/main.ts --lookback-hours 72
+# or: go -C go run . --lookback-hours 72
 ```
 
 To post to Slack, drop `OUTPUT_MODE` and set either `SLACK_WEBHOOK_URL`, or
@@ -231,10 +248,14 @@ To post to Slack, drop `OUTPUT_MODE` and set either `SLACK_WEBHOOK_URL`, or
 
 ## Tests
 
+Run them from `python/`, which is where their caches belong:
+
 ```bash
-./.venv/bin/pip install pytest ruff
-./.venv/bin/python -m pytest test_main.py
-./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
+cd python
+.venv/bin/pip install pytest ruff
+.venv/bin/python -m pytest
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
 ```
 
 The window arithmetic, the GitHub search grammar, the reply parsing and the
@@ -244,7 +265,7 @@ JSON GitHub's MCP server actually returns.
 
 ## Read-only is a guardrail, not a convention
 
-`dome-agent.yaml` sets `entitlements.exclusive: true`. That makes the entitled
+`dome/dome-agent.yaml` sets `entitlements.exclusive: true`. That makes the entitled
 lists a closed world rather than a minimum, and compiles a generated
 `dome-exclusive-entitlements.cedar` into the Revision:
 
@@ -298,7 +319,7 @@ effective policy in every environment.
   `runtime.environment.defaults` and overridable from the environment. The program
   checks the published catalog before doing any work — a missing tool fails
   immediately, names what the Gateway does publish, and says which variable to
-  set. `main.py`'s own constants are a fallback for running without a Blueprint
+  set. `python/main.py`'s own constants are a fallback for running without a Blueprint
   and name no particular workspace's spelling, so trust the Blueprint or the
   environment over them.
 - **`search_issues` is no longer a search.** GitHub's MCP server now documents it
@@ -306,7 +327,7 @@ effective policy in every environment.
   issue opened in a window. The issues section therefore uses `list_issues` per
   repository instead. Its `since` filter is *last updated*, not *created*, so it
   returns a superset — an old issue someone commented on today comes back too —
-  and `main.py` filters to genuinely new issues itself.
+  and each runtime filters to genuinely new issues itself.
 - **The two GitHub tools answer in two different envelopes.** `search_pull_requests`
   is REST-backed and returns `{total_count, items}`; `list_issues` is
   GraphQL-backed and returns `{totalCount, issues}`. Both are read through the
@@ -333,7 +354,8 @@ effective policy in every environment.
   nothing, with no hint that the name merely moved. Run `dome context use` once
   and let commands inherit it; reach for `dome context list` when a name that
   worked yesterday stops matching.
-- **`dome blueprint run` is not a deployment.** It supervises one local process.
+- **`dome blueprint run` is not a deployment.** Run it from `dome/`; it
+  supervises one local process.
   A recurring report still needs a cron job or container of its own, consuming
   the same environment the Blueprint declares.
 - **The two applies need different permissions.** Workspace apply needs

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * GitHub activity report — same agent as ../main.py, in TypeScript.
+ * GitHub activity report — same agent as ../python/main.py, in TypeScript.
  *
  * Governance lives in the Blueprint, not here. This process exchanges a Dome
  * agent key, then talks to the Gateway over HTTP: MCP JSON-RPC at /mcp and

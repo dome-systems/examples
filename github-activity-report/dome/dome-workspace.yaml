@@ -8,14 +8,14 @@ gateways:
   # Every Dome workspace auto-creates a Gateway named Default, so naming it here
   # attaches to what is already there rather than standing up a second endpoint
   # beside it. Named by the tools and models entries below, which attach to it,
-  # and by dome-agent.yaml, which entitles the agent to it. Change it in one
+  # and by dome/dome-agent.yaml, which entitles the agent to it. Change it in one
   # place and change it everywhere.
   - name: Default
     description: GitHub reads and the summarizer behind the activity report
 tools:
   # The connection name is load-bearing and case-sensitive. Tools are addressed
   # as connection/tool, so the agent's GitHub/search_pull_requests entitlement
-  # and the tool names dome-agent.yaml passes to the program both depend on this
+  # and the tool names dome/dome-agent.yaml passes to the program both depend on this
   # matching the connection in the workspace exactly.
   #
   # This is GitHub's own hosted MCP server, so nothing about it is
@@ -23,7 +23,7 @@ tools:
   #
   # The endpoint also serves a /readonly variant that publishes only read tools.
   # It is deliberately not used: the agent is held to reading by the closed-world
-  # guardrail in dome-agent.yaml, and a connection that never publishes a
+  # guardrail in dome/dome-agent.yaml, and a connection that never publishes a
   # mutating tool would leave that guardrail's deny-checks with nothing to
   # resolve against — the proof would quietly evaporate.
   - name: GitHub

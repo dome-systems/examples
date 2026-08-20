@@ -1,6 +1,6 @@
 package main
 
-// GitHub activity report — same agent as ../main.py, in Go.
+// GitHub activity report — same agent as ../python/main.py, in Go.
 //
 // Governance lives in the Blueprint, not here. This process exchanges a Dome
 // agent key, then talks to the Gateway over HTTP: MCP JSON-RPC at /mcp and
