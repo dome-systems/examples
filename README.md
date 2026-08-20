@@ -11,3 +11,14 @@ Chess Coach is the **interactive** example: each coach request belongs to a
 signed-in person. The GitHub activity report is the **noninteractive** example:
 a job that runs because cron, CI, or a human invoked it, not because a user
 asked a question in a session.
+
+Each example is self-contained. Clone once and change into the one you want:
+
+```bash
+git clone https://github.com/dome-systems/examples.git
+cd examples/demo-chess              # or: cd examples/github-activity-report
+```
+
+Every example reads its Dome key, provider keys, and any signing secret from
+the environment. Nothing here holds a credential, and `.env` files are ignored
+at the root of this repository as well as inside each example.
